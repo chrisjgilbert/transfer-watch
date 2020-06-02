@@ -1,24 +1,9 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This is the API that will return a list of transfer rumours.
 
-Things you may want to cover:
+It will scrape a few news website football sections and compile a list of transfer rumours based on them.
 
-* Ruby version
+Hopefully we will then be able to see which players are most likely to be on the move soon..
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+A React front end will be plugged into this back end at some point.
