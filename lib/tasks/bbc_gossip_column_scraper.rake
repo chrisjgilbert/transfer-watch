@@ -12,22 +12,30 @@ namespace :scrape do
     page.css('div#story-body p').each do |story|
 
       if story.text.match(/transfer/i) || story.text.match(/signing/i) || story.text.match(/move/i)
+
+        # call Google's API
         document = { content: story.text, type: :PLAIN_TEXT }
         response = language.analyze_entities document: document
-
-        # Get document sentiment from response
         entities = response.entities
+        
+        # Extract the player and clubs from Google response
         players = []
         clubs = []
-
-        # Extract the player and clubs from Google response
         entities.each do |entity|
-          if entity.type == :ORGANIZATION
-            clubs << entity.name
-          end
           if entity.type == :PERSON
-            players << entity.name
-          end          
+            player = Player.find_by(name: entity.name)
+            unless player.nil?
+              players << player
+            end
+          end
+          
+          # matching Based on Wikiepdia URL seems more reliable than entity.type == :ORGANIZATION
+          # and then looking up the name in our DB
+          entity_url = entity.metadata['wikipedia_url']
+          if Club.where(path: entity_url).exists?
+            club = Club.find_by(path: entity_url)
+            clubs << club
+          end   
         end
 
         # this means we will ignore stories with
@@ -37,18 +45,8 @@ namespace :scrape do
         next unless players.length == 1
         next unless clubs.length > 0
 
-        matched_player = Player.find_by(name: players.first)
-
-        next if matched_player.nil?
-
-        matched_clubs = []
-        clubs.each do |club|
-          if Club.find_by(name: club).present?
-            matched_clubs << Club.find_by(name: club)
-          end
-        end
-
-        matched_clubs.each do |linked_club|
+        matched_player = players.first
+        clubs.each do |linked_club|
           next if matched_player.plays_for_club?(linked_club) || matched_player.already_linked_with_club?(linked_club)
           rumour = Rumour.new(description: story.text, player_id: matched_player.id, club_id: linked_club.id)
           p "*"*100

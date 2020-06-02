@@ -5,7 +5,7 @@ CLUBS =[
   {name: 'Chelsea', path: 'Chelsea_F.C.'},
   {name: 'Arsenal', path: 'Arsenal_F.C.'},
   {name: 'Manchester City', path: 'Manchester_City_F.C.'},
-  {name: 'Manchester United', path: 'Arsenal_F.C.'},
+  {name: 'Manchester United', path: 'Manchester_United_F.C.'},
   {name: 'Leicester', path: 'Leicester_City_F.C.'},
   {name: 'Liverpool', path: 'Liverpool_F.C.'},
   {name: 'Wolves', path: 'Wolverhampton_Wanderers_F.C.'},
@@ -34,7 +34,7 @@ namespace :wikipedia do
       url = "https://en.wikipedia.org/wiki/#{club_path}"
       page = Nokogiri::HTML(HTTParty.get(url))
       page.css('tbody tr.vcard.agent span.fn a').each do |player|
-        club = Club.find_or_create_by(name: club_name)
+        club = Club.find_or_create_by(name: club_name, path: url)
         player = Player.create(name: player.text, club_id: club.id)
         p "Successfully created #{player.name} at #{club.name}"
       end
