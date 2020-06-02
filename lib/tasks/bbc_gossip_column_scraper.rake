@@ -29,9 +29,6 @@ namespace :scrape do
             players << entity.name
           end          
         end
-        p story.text
-        p players
-        p clubs
 
         # this means we will ignore stories with
         # multiple players (for now)
@@ -41,6 +38,8 @@ namespace :scrape do
         next unless clubs.length > 0
 
         matched_player = Player.find_by(name: players.first)
+
+        next if matched_player.nil?
 
         matched_clubs = []
         clubs.each do |club|
@@ -52,13 +51,14 @@ namespace :scrape do
         matched_clubs.each do |linked_club|
           next if matched_player.plays_for_club?(linked_club) || matched_player.already_linked_with_club?(linked_club)
           rumour = Rumour.new(description: story.text, player_id: matched_player.id, club_id: linked_club.id)
+          p "*"*100
+          p "From the text: #{story.text}"
           if rumour.save 
-            p "*"*100
             p "Successfully created a rumour linking #{matched_player.name} with #{linked_club.name}!"
-            p "*"*100
           else
             p "Failed to create rumour linking #{matched_player.name} with #{linked_club.name}!"
           end
+          p "*"*100
         end
       end
     end

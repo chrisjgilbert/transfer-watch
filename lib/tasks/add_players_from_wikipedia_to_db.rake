@@ -26,7 +26,7 @@ CLUBS =[
 
 
 namespace :wikipedia do
-  desc "Scrape Wikipedia for a Clubs's players"
+  desc "Scrape Wikipedia for a clubs and players"
   task :all => :environment do
     CLUBS.each do |club|
       club_name = club[:name]
@@ -38,6 +38,7 @@ namespace :wikipedia do
         player = Player.create(name: player.text, club_id: club.id)
         p "Successfully created #{player.name} at #{club.name}"
       end
+      sleep 2
     end
   end
 end
