@@ -10,21 +10,44 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_19_181154) do
+ActiveRecord::Schema.define(version: 2020_06_02_122024) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
-  create_table "clubs_tables", force: :cascade do |t|
+  create_table "clubs", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
-  create_table "players_tables", force: :cascade do |t|
+  create_table "players", force: :cascade do |t|
+    t.string "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "club_id"
+    t.index ["club_id"], name: "index_players_on_club_id"
+  end
+
+  create_table "rumours", force: :cascade do |t|
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "source_id"
+    t.bigint "player_id"
+    t.bigint "club_id"
+    t.index ["club_id"], name: "index_rumours_on_club_id"
+    t.index ["player_id"], name: "index_rumours_on_player_id"
+    t.index ["source_id"], name: "index_rumours_on_source_id"
+  end
+
+  create_table "sources", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "rumours", "clubs"
+  add_foreign_key "rumours", "players"
+  add_foreign_key "rumours", "sources"
 end
