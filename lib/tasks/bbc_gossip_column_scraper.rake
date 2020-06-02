@@ -1,38 +1,64 @@
 require 'httparty'
 require 'nokogiri'
-
-# "Chelsea are considering switching their attentions to signing RB Leipzig striker Timo Werner, 24, if the Germany international indicates a willingness to move. (ESPN)"
+require "google/cloud/language"
 
 URL = 'https://www.bbc.co.uk/sport/football/gossip'
 
 namespace :scrape do
   desc "Scrape the BBC Sport Gossip Column for Rumours"
   task :bbc => :environment do
+    language = Google::Cloud::Language.language_service
     page = Nokogiri::HTML(HTTParty.get(URL))
-    page.css('div#story-body p').each.with_index do |story, index|
-      next if index > 0
+    page.css('div#story-body p').each do |story|
+
       if story.text.match(/transfer/i) || story.text.match(/signing/i) || story.text.match(/move/i)
-        keywords = story.text.scan(/\b[A-Z].*?\b/)
-        potential_subjects = []
-        p keywords
-        keywords.each do |keyword|
-          # get the subject player
-          next unless Player.where(['name LIKE ?', "%#{keyword}%"]).exists?
-          subject = Player.where(['name LIKE ?', "%#{keyword}%"]).first
-          potential_subjects << subject.id
+        document = { content: story.text, type: :PLAIN_TEXT }
+        response = language.analyze_entities document: document
+
+        # Get document sentiment from response
+        entities = response.entities
+        players = []
+        clubs = []
+
+        # Extract the player and clubs from Google response
+        entities.each do |entity|
+          if entity.type == :ORGANIZATION
+            clubs << entity.name
+          end
+          if entity.type == :PERSON
+            players << entity.name
+          end          
+        end
+        p story.text
+        p players
+        p clubs
+
+        # this means we will ignore stories with
+        # multiple players (for now)
+        # and also skip if we don't find any
+        # players
+        next unless players.length == 1
+        next unless clubs.length > 0
+
+        matched_player = Player.find_by(name: players.first)
+
+        matched_clubs = []
+        clubs.each do |club|
+          if Club.find_by(name: club).present?
+            matched_clubs << Club.find_by(name: club)
+          end
         end
 
-        next unless Player.find(potential_subjects).count == 1
-        subject = Player.find(potential_subjects).first
-
-
-        # get the target clubs
-        keywords.each do |keyword|
-          next unless Club.where(['name LIKE ?', "%#{keyword}%"]).exists?
-          target = Club.where(['name LIKE ?', "%#{keyword}%"]).first
-          next if subject.plays_for_club?(target) # we don't want to link a player with their existing club!
-          next if subject.already_linked_with_club?(target) # the player and club have already got a Rumour
-          rumour = Rumour.create(player_id: subject.id, club_id: target.id, source_id: 1, description: story.text) # BBC Gossip Column
+        matched_clubs.each do |linked_club|
+          next if matched_player.plays_for_club?(linked_club) || matched_player.already_linked_with_club?(linked_club)
+          rumour = Rumour.new(description: story.text, player_id: matched_player.id, club_id: linked_club.id)
+          if rumour.save 
+            p "*"*100
+            p "Successfully created a rumour linking #{matched_player.name} with #{linked_club.name}!"
+            p "*"*100
+          else
+            p "Failed to create rumour linking #{matched_player.name} with #{linked_club.name}!"
+          end
         end
       end
     end

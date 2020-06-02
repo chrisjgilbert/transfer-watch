@@ -1,6 +1,7 @@
 class Player < ApplicationRecord
 
   has_many :rumours
+  belongs_to :club
 
   def already_linked_with_club?(club)
     Rumour.where(club_id: club.id, player_id: self.id).exists?
